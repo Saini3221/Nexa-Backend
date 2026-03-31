@@ -1,0 +1,7 @@
+node_modules/
+.env
+nexainfotech/
+dist/
+build/
+.DS_Store
+*.log
