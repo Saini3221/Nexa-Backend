@@ -108,13 +108,23 @@ exports.getBlogById = async (req, res) => {
   }
 };
 
-// Get Blog By Slug
+// Get Blog By Slug (with Smart ID Fallback)
 exports.getBlogBySlug = async (req, res) => {
   try {
-    const blog = await Blog.findOne({ slug: req.params.slug });
+    const { slug } = req.params;
+    
+    // 1. Try to find by slug first
+    let blog = await Blog.findOne({ slug });
+    
+    // 2. If not found by slug, check if it could be a MongoDB ID
+    if (!blog && mongoose.Types.ObjectId.isValid(slug)) {
+      blog = await Blog.findById(slug);
+    }
+    
     if (!blog) {
       return res.status(404).json({ message: "Blog not found" });
     }
+    
     res.json(blog);
   } catch (error) {
     res.status(500).json({ message: error.message });
