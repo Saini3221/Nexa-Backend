@@ -10,6 +10,7 @@ router.post("/upload-image", upload.single("image"), blogController.uploadImage)
 router.post("/", upload.single("image"), blogController.createBlog);
 router.get("/", blogController.getBlogs);
 router.get("/:id", blogController.getBlogById);
+router.get("/slug/:slug", blogController.getBlogBySlug);
 router.put("/:id", upload.single("image"), blogController.updateBlog);
 router.delete("/:id", blogController.deleteBlog);
 

@@ -98,7 +98,7 @@ app.get("/sitemap.xml", async (req, res) => {
 
   try {
     const services = await Service.find({}, "slug updatedAt");
-    const blogs = await Blog.find({}, "_id updatedAt");
+    const blogs = await Blog.find({}, "slug updatedAt");
     const customPages = await Page.find({ isActive: true }, "pageId updatedAt");
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -115,7 +115,8 @@ app.get("/sitemap.xml", async (req, res) => {
     });
 
     blogs.forEach((b) => {
-      xml += `\n  <url><loc>${baseUrl}/blog/${b._id}</loc><lastmod>${b.updatedAt.toISOString().split("T")[0]}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`;
+      const blogUrl = b.slug ? `/blog/${b.slug}` : `/blog/${b._id}`;
+      xml += `\n  <url><loc>${baseUrl}${blogUrl}</loc><lastmod>${b.updatedAt.toISOString().split("T")[0]}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`;
     });
 
     customPages.forEach((p) => {
