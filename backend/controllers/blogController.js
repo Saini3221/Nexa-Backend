@@ -1,5 +1,15 @@
 const Blog = require("../models/Blog");
+const slugify = require("slugify");
 const cloudinary = require("../config/cloudinary");
+
+// Helper function to clean slug
+const cleanSlug = (slug) => {
+  if (!slug) return slug;
+  return slug
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
 
 // Create Blog
 exports.createBlog = async (req, res) => {
@@ -19,17 +29,40 @@ exports.createBlog = async (req, res) => {
       imageUrl = result.secure_url;
     }
 
+    // Slug generation
+    let finalSlug;
+    if (slug) {
+      finalSlug = cleanSlug(slug);
+    } else if (title) {
+      finalSlug = slugify(title, { lower: true, strict: true });
+    }
+
     // Validation
-    if (!title || !slug || !imageUrl || !sections || sections.length === 0) {
+    if (!title || !finalSlug || !imageUrl || !sections || (typeof sections === 'string' ? JSON.parse(sections).length === 0 : sections.length === 0)) {
       return res.status(400).json({ 
         message: "Title, Slug, Featured Image, and at least one section are required" 
       });
     }
 
+    // Check for duplicate slug
+    const existing = await Blog.findOne({ slug: finalSlug });
+    if (existing) {
+      return res.status(400).json({ message: "Slug matching this title or manual entry already exists." });
+    }
+
+    let parsedSections = sections;
+    if (typeof sections === 'string') {
+        try {
+            parsedSections = JSON.parse(sections);
+        } catch (e) {
+            return res.status(400).json({ message: "Invalid sections format" });
+        }
+    }
+
     const newBlog = new Blog({
       title,
-      slug,
-      sections,
+      slug: finalSlug,
+      sections: parsedSections,
       image: imageUrl,
       author: author || "Admin",
       views: views || 0,
@@ -93,14 +126,46 @@ exports.updateBlog = async (req, res) => {
     }
 
     const updateData = {
-      title,
-      slug,
-      sections,
       author: author || "Admin",
       views: views || 0,
       category: category || "City Guide",
       image: imageUrl
     };
+
+    if (title) updateData.title = title;
+    
+    // Handle slug update
+    if (slug) {
+      updateData.slug = cleanSlug(slug);
+    } else if (title) {
+      updateData.slug = slugify(title, { lower: true, strict: true });
+    }
+
+    if (sections) {
+        let parsedSections = sections;
+        if (typeof sections === 'string') {
+            try {
+                parsedSections = JSON.parse(sections);
+            } catch (e) {
+                return res.status(400).json({ message: "Invalid sections format" });
+            }
+        }
+        updateData.sections = parsedSections;
+    }
+
+    // Check if new slug already exists
+    if (updateData.slug) {
+      const existing = await Blog.findOne({
+        slug: updateData.slug,
+        _id: { $ne: req.params.id }
+      });
+
+      if (existing) {
+        return res.status(400).json({
+          message: "Slug must be unique. This URL is already taken."
+        });
+      }
+    }
 
     const updated = await Blog.findByIdAndUpdate(
       req.params.id,
@@ -131,7 +196,9 @@ exports.deleteBlog = async (req, res) => {
     if (blog && blog.image) {
       try {
         // Extract public ID from URL
-        const publicId = blog.image.split('/').pop().split('.')[0];
+        const parts = blog.image.split('/');
+        const fileName = parts.pop();
+        const publicId = fileName.split('.')[0];
         await cloudinary.uploader.destroy(`blogs/${publicId}`);
       } catch (cloudinaryError) {
         console.error('Cloudinary delete error:', cloudinaryError);
