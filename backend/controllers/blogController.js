@@ -125,32 +125,31 @@ exports.updateBlog = async (req, res) => {
       imageUrl = result.secure_url;
     }
 
-    const updateData = {
-      author: author || "Admin",
-      views: views || 0,
-      category: category || "City Guide",
-      image: imageUrl
-    };
-
+    const updateData = {};
     if (title) updateData.title = title;
-    
+    if (author) updateData.author = author;
+    if (category) updateData.category = category;
+    if (views !== undefined) updateData.views = Number(views);
+    if (imageUrl) updateData.image = imageUrl;
+
     // Handle slug update
     if (slug) {
       updateData.slug = cleanSlug(slug);
     } else if (title) {
+      // Auto-generate slug from title ONLY if title is updated and no slug is provided
       updateData.slug = slugify(title, { lower: true, strict: true });
     }
 
     if (sections) {
-        let parsedSections = sections;
-        if (typeof sections === 'string') {
-            try {
-                parsedSections = JSON.parse(sections);
-            } catch (e) {
-                return res.status(400).json({ message: "Invalid sections format" });
-            }
+      let parsedSections = sections;
+      if (typeof sections === "string") {
+        try {
+          parsedSections = JSON.parse(sections);
+        } catch (e) {
+          return res.status(400).json({ message: "Invalid sections format" });
         }
-        updateData.sections = parsedSections;
+      }
+      updateData.sections = parsedSections;
     }
 
     // Check if new slug already exists
