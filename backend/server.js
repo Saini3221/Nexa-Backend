@@ -115,7 +115,8 @@ app.get("/sitemap.xml", async (req, res) => {
     });
 
     blogs.forEach((b) => {
-      const blogUrl = b.slug ? `/blog/${b.slug}` : `/blog/${b._id}`;
+      // Use root-level URLs for blogs to match services
+      const blogUrl = b.slug ? (b.slug.startsWith("/") ? b.slug : `/${b.slug}`) : `/${b._id}`;
       xml += `\n  <url><loc>${baseUrl}${blogUrl}</loc><lastmod>${b.updatedAt.toISOString().split("T")[0]}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`;
     });
 

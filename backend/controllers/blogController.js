@@ -2,13 +2,16 @@ const Blog = require("../models/Blog");
 const slugify = require("slugify");
 const cloudinary = require("../config/cloudinary");
 
-// Helper function to clean slug
+// Helper function to clean slug but preserve slashes
 const cleanSlug = (slug) => {
   if (!slug) return slug;
+
   return slug
     .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/[^a-z0-9\/-]+/g, '-')
+    .replace(/\/+/g, '/')
+    .replace(/^-+|-+$/g, '')
+    .replace(/^\/+|\/+$/g, '');
 };
 
 // Create Blog
